@@ -17,10 +17,10 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
 DELTA = {  # 押下キーと移動量
-    pg.K_UP: (0, -KK_SPEED),
-    pg.K_DOWN: (0, +KK_SPEED),
-    pg.K_LEFT: (-KK_SPEED, 0),
-    pg.K_RIGHT: (+KK_SPEED, 0)
+    pg.K_UP: (0, -v),
+    pg.K_DOWN: (0, +v),
+    pg.K_LEFT: (-v, 0),
+    pg.K_RIGHT: (+v, 0)
 }
 
 
