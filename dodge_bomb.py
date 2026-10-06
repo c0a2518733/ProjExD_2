@@ -10,7 +10,7 @@ WIDTH, HEIGHT = 1100, 650
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
-DELTA = { # 押下キーと移動量
+DELTA = {  # 押下キーと移動量
     pg.K_UP: (0, -5),
     pg.K_DOWN: (0, +5),
     pg.K_LEFT: (-5, 0),
@@ -27,8 +27,8 @@ def gameover(screen: pg.Surface) -> None:
     """
     go_screen = pg.Surface((WIDTH, HEIGHT))
     pg.draw.rect(go_screen, (0, 0, 0), pg.Rect(0, 0, WIDTH, HEIGHT))
-    go_screen.set_alpha(200) # 透明度設定
-    font = pg.font.Font(None, 80) # 白文字Game Overを作成しSurfaceに貼る
+    go_screen.set_alpha(200)  # 透明度設定
+    font = pg.font.Font(None, 80)  # 白文字Game Overを作成しSurfaceに貼る
     txt = font.render("Game Over", True, (255, 255, 255))
     txt_rct = txt.get_rect()
     txt_rct.center = WIDTH // 2, HEIGHT // 2
@@ -53,9 +53,9 @@ def init_bb_imgs() -> tuple[list[pg.Surface], list[int]]:
     for r in range(1, 11):
         bb_img = pg.Surface((20*r, 20*r))
         pg.draw.circle(bb_img, (255, 0, 0), (10*r, 10*r), 10*r)
-        bb_img.set_colorkey((0, 0, 0)) # 黒い部分を透明化
+        bb_img.set_colorkey((0, 0, 0))  # 黒い部分を透明化
         bb_imgs.append(bb_img)
-    bb_accs = [a for a in range(1,11)]
+    bb_accs = [a for a in range(1, 11)]
     return bb_imgs, bb_accs
 
 
@@ -66,7 +66,7 @@ def get_kk_imgs() -> dict[tuple[int, int], pg.Surface]:
     """
     kk_imgs = pg.image.load("fig/3.png")
     kk_img = pg.transform.flip(kk_imgs, True, False)
-    return { # 方向角度とイラストの方向設定
+    return {  # 方向角度とイラストの方向設定
         (0, 0): pg.transform.rotozoom(kk_imgs, 0, 0.9),
         (+5, 0): pg.transform.rotozoom(kk_img, 0, 0.9),
         (+5, -5): pg.transform.rotozoom(kk_img, 45, 0.9),
@@ -79,7 +79,8 @@ def get_kk_imgs() -> dict[tuple[int, int], pg.Surface]:
     }
 
 
-def calc_orientation(org: pg.Rect, dst: pg.Rect, current_xy: tuple[float, float]) -> tuple[float, float]:
+def calc_orientation(org: pg.Rect, dst: pg.Rect,
+                     current_xy: tuple[float, float]) -> tuple[float, float]:
     """
     演習4：orgから見てdstがある方向（移動すべき方向）のベクトルを求める
     引数1 org：移動する側のRect（爆弾Rect）
@@ -91,7 +92,7 @@ def calc_orientation(org: pg.Rect, dst: pg.Rect, current_xy: tuple[float, float]
     x_diff = dst.centerx - org.centerx
     y_diff = dst.centery - org.centery
     norm = math.sqrt(x_diff**2 + y_diff**2)
-    if norm < 300: # 近いときは向きを変えない
+    if norm < 300:  # 近いときは向きを変えない
         return current_xy
     vx = x_diff / norm * math.sqrt(50)
     vy = y_diff / norm * math.sqrt(50)
@@ -107,9 +108,9 @@ def check_bound(obj_rct: pg.Rect) -> tuple[bool, bool]:
     """
     yoko, tate = True, True
     if obj_rct.left < 0 or WIDTH < obj_rct.right:
-        yoko = False # 横方向の判定
+        yoko = False  # 横方向の判定
     if obj_rct.top < 0 or HEIGHT < obj_rct.bottom:
-        tate = False # 縦方向の判定
+        tate = False  # 縦方向の判定
     return yoko, tate
 
 
@@ -118,17 +119,17 @@ def main():
     screen = pg.display.set_mode((WIDTH, HEIGHT))
     bg_img = pg.image.load("fig/pg_bg.jpg")
 
-    kk_imgs = get_kk_imgs() # 向きごとの画像辞書
+    kk_imgs = get_kk_imgs()  # 向きごとの画像辞書
     kk_img = kk_imgs[(0, 0)]
     kk_rct = kk_img.get_rect()
     kk_rct.center = 300, 200
 
-    bb_imgs, bb_accs = init_bb_imgs() # 爆弾と加速度のリスト
+    bb_imgs, bb_accs = init_bb_imgs()  # 爆弾と加速度のリスト
     bb_img = bb_imgs[0]
     bb_rct = bb_img.get_rect()
     bb_rct.centerx = random.randint(10, WIDTH - 10)
     bb_rct.centery = random.randint(10, HEIGHT - 10)
-    vx, vy = +5, +5 # 爆弾のデフォルト速度
+    vx, vy = +5, +5  # 爆弾のデフォルト速度
     clock = pg.time.Clock()
     tmr = 0
     while True:
@@ -142,21 +143,21 @@ def main():
         key_lst = pg.key.get_pressed()
         sum_mv = [0, 0]
         for key, mv in DELTA.items():
-            if key_lst[key]: # 縦と横の移動量設定
+            if key_lst[key]:  # 縦と横の移動量設定
                 sum_mv[0] += mv[0]
                 sum_mv[1] += mv[1]
         kk_rct.move_ip(sum_mv)
         if check_bound(kk_rct) != (True, True):
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1])
-        kk_img = kk_imgs[tuple(sum_mv)] # 移動方向にあった画像の向きにする
+        kk_img = kk_imgs[tuple(sum_mv)]  # 移動方向にあった画像の向きにする
         screen.blit(kk_img, kk_rct)
         vx, vy = calc_orientation(bb_rct, kk_rct, (vx, vy))
-        stage = min(tmr//500, 9) # 10秒ごとに一段階アップ
+        stage = min(tmr//500, 9)  # 10秒ごとに一段階アップ
         avx, avy = vx * bb_accs[stage], vy * bb_accs[stage]
         bb_img = bb_imgs[stage]
         bb_rct.width = bb_img.get_rect().width
         bb_rct.height = bb_img.get_rect().height
-        bb_rct.clamp_ip(screen.get_rect()) # 拡大ではみ出た部分を画面内に戻す
+        bb_rct.clamp_ip(screen.get_rect())  # 拡大ではみ出た部分を画面内に戻す
         bb_rct.move_ip(avx, avy)
         yoko, tate = check_bound(bb_rct)
         if not yoko:
