@@ -7,6 +7,10 @@ import pygame as pg
 
 
 WIDTH, HEIGHT = 1100, 650
+BB_MAX = 5
+SB_NUM = 8
+SB_SPEED = 5
+SB_LIFE = 150
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -44,7 +48,7 @@ def gameover(screen: pg.Surface) -> None:
     time.sleep(5)
 
 
-def init_bb_imgs() -> tuple[list[pg.Surface], list[int]]:
+def init_bb_imgs() -> tuple[list[pg.Surface], list[float]]:
     """
     演習2：大きさの違う爆弾Surfaceのリストと加速度のリストを作る
     戻り値：タプル（爆弾Surfaceのリスト（10段階），加速度のリスト）
@@ -114,6 +118,79 @@ def check_bound(obj_rct: pg.Rect) -> tuple[bool, bool]:
     return yoko, tate
 
 
+def check_collider(kk_rct: pg.Rect, bb_rct: pg.Rect) -> bool:
+    """
+    こうかとんと爆弾の当たり判定を円形にする
+    引数1 kk_rct：こうかとんRect
+    引数2 bb_rct：爆弾Rect（大きい爆弾・小型爆弾のどちらでもよい）
+    戻り値：当たっていればTrue，当たっていなければFalse
+    """
+    kk_r = min(kk_rct.width, kk_rct.height) / 2
+    bb_r = bb_rct.width / 2
+    dist = math.hypot(kk_rct.centerx - bb_rct.centerx,
+                      kk_rct.centery - bb_rct.centery)
+    return dist < kk_r + bb_r
+
+
+def create_bomb(kk_rct: pg.Rect, size: int) -> dict:
+    """
+    追加機能5：こうかとんから300px以上離れた場所に，新しい爆弾を作る
+    引数1 kk_rct：こうかとんRect
+    引数2 size：爆弾の直径（今の段階の大きさ）
+    戻り値：爆弾の辞書（rct：Rect，vx・vy：速度，touching：壁に触れているか）
+    """
+    while True:
+        rct = pg.Rect(random.randint(0, WIDTH - size),
+                      random.randint(0, HEIGHT - size), size, size)
+        dist = math.hypot(rct.centerx - kk_rct.centerx,
+                          rct.centery - kk_rct.centery)
+        if dist >= 300:
+            return {"rct": rct, "vx": +5, "vy": +5, "touching": False}
+
+
+def fire_small_bombs(center: tuple[int, int]) -> list[dict]:
+    """
+    追加機能6：centerからSB_NUM方向へ放射状に小型爆弾を発射する
+    引数：発射する中心座標（大きい爆弾の中心）
+    戻り値：小型爆弾の辞書のリスト
+    （rct：Rect，vx・vy：速度，bounced：跳ね返ったか，timer：跳ね返ってからのフレーム数）
+    """
+    small = []
+    for i in range(SB_NUM):
+        angle = math.radians(360 / SB_NUM * i)
+        rct = pg.Rect(0, 0, 10, 10)
+        rct.center = center
+        rct.clamp_ip(pg.Rect(0, 0, WIDTH, HEIGHT))
+        small.append({"rct": rct,
+                  "vx": SB_SPEED * math.cos(angle),
+                  "vy": SB_SPEED * math.sin(angle),
+                  "bounced": False, "timer": 0})
+    return small
+
+
+def update_small_bombs(small: list[dict]) -> list[dict]:
+    """
+    追加機能7：小型爆弾を動かし，1回だけ跳ね返らせ，跳ね返ってから3秒で消す
+    引数：小型爆弾のリスト
+    戻り値：まだ残っている小型爆弾のリスト
+    """
+    for s in small:
+        s["rct"].move_ip(s["vx"], s["vy"])
+        if not s["bounced"]:
+            yoko, tate = check_bound(s["rct"])
+            if not yoko:
+                s["vx"] *= -1
+            if not tate:
+                s["vy"] *= -1
+            if not (yoko and tate):
+                s["bounced"] = True
+        else:
+            s["timer"] += 1
+    scr_rct = pg.Rect(0, 0, WIDTH, HEIGHT)
+    return [s for s in small
+            if s["timer"] < SB_LIFE and scr_rct.colliderect(s["rct"])]
+
+
 def main():
     pg.display.set_caption("逃げろ！こうかとん")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -125,20 +202,22 @@ def main():
     kk_rct.center = 300, 200
 
     bb_imgs, bb_accs = init_bb_imgs()  # 爆弾と加速度のリスト
-    bb_img = bb_imgs[0]
-    bb_rct = bb_img.get_rect()
-    bb_rct.centerx = random.randint(10, WIDTH - 10)
-    bb_rct.centery = random.randint(10, HEIGHT - 10)
-    vx, vy = +5, +5  # 爆弾のデフォルト速度
+    bombs = [create_bomb(kk_rct, bb_imgs[0].get_width())]
+    bounce_cnt = 0
+    sb_img = pg.Surface((10, 10))
+    pg.draw.circle(sb_img, (255, 128, 0), (5, 5), 5)
+    sb_img.set_colorkey((0, 0, 0))
+    small = []
     clock = pg.time.Clock()
     tmr = 0
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
-        if kk_rct.colliderect(bb_rct):
-            gameover(screen)
-            return
+        for b in bombs + small:
+            if check_collider(kk_rct, b["rct"]):  # 当たり判定円形
+                gameover(screen)
+                return
         screen.blit(bg_img, [0, 0])
         key_lst = pg.key.get_pressed()
         sum_mv = [0, 0]
@@ -151,20 +230,37 @@ def main():
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1])
         kk_img = kk_imgs[tuple(sum_mv)]  # 移動方向にあった画像の向きにする
         screen.blit(kk_img, kk_rct)
-        vx, vy = calc_orientation(bb_rct, kk_rct, (vx, vy))
         stage = min(tmr//500, 9)  # 10秒ごとに一段階アップ
-        avx, avy = vx * bb_accs[stage], vy * bb_accs[stage]
         bb_img = bb_imgs[stage]
-        bb_rct.width = bb_img.get_rect().width
-        bb_rct.height = bb_img.get_rect().height
-        bb_rct.clamp_ip(screen.get_rect())  # 拡大ではみ出た部分を画面内に戻す
-        bb_rct.move_ip(avx, avy)
-        yoko, tate = check_bound(bb_rct)
-        if not yoko:
-            vx *= -1
-        if not tate:
-            vy *= -1
-        screen.blit(bb_img, bb_rct)
+        for b in bombs:  # 大きい爆弾を1個ずつ動かす
+            b["vx"], b["vy"] = calc_orientation(b["rct"], kk_rct,
+                                                (b["vx"], b["vy"]))
+            avx, avy = b["vx"] * bb_accs[stage], b["vy"] * bb_accs[stage]
+            b["rct"].width = bb_img.get_rect().width
+            b["rct"].height = bb_img.get_rect().height
+            b["rct"].clamp_ip(screen.get_rect())  # 拡大ではみ出た部分を画面内に戻す
+            b["rct"].move_ip(avx, avy)
+            yoko, tate = check_bound(b["rct"])
+            if not yoko:
+                b["vx"] *= -1
+            if not tate:
+                b["vy"] *= -1
+            out = not (yoko and tate)
+            if out and not b["touching"]:  # 壁に当たった瞬間だけ1回と数える
+                bounce_cnt += 1
+            b["touching"] = out
+            screen.blit(bb_img, b["rct"])
+        if bounce_cnt >= 2:  # 2回反射するごとに爆弾を1個増やす
+            bounce_cnt -= 2
+            if len(bombs) < BB_MAX:
+                bombs.append(create_bomb(kk_rct, bb_img.get_width()))
+
+        if tmr > 0 and tmr % 250 == 0:  # 5秒ごとに小型爆弾を発射
+            for b in bombs:
+                small += fire_small_bombs(b["rct"].center)
+        small = update_small_bombs(small)
+        for s in small:
+            screen.blit(sb_img, s["rct"])
         pg.display.update()
         tmr += 1
         clock.tick(50)
