@@ -11,14 +11,16 @@ BB_MAX = 5
 SB_NUM = 8
 SB_SPEED = 5
 SB_LIFE = 150
+KK_SPEED = 10
+v = KK_SPEED
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 
 DELTA = {  # 押下キーと移動量
-    pg.K_UP: (0, -5),
-    pg.K_DOWN: (0, +5),
-    pg.K_LEFT: (-5, 0),
-    pg.K_RIGHT: (+5, 0)
+    pg.K_UP: (0, -KK_SPEED),
+    pg.K_DOWN: (0, +KK_SPEED),
+    pg.K_LEFT: (-KK_SPEED, 0),
+    pg.K_RIGHT: (+KK_SPEED, 0)
 }
 
 
@@ -70,16 +72,17 @@ def get_kk_imgs() -> dict[tuple[int, int], pg.Surface]:
     """
     kk_imgs = pg.image.load("fig/3.png")
     kk_img = pg.transform.flip(kk_imgs, True, False)
+
     return {  # 方向角度とイラストの方向設定
         (0, 0): pg.transform.rotozoom(kk_imgs, 0, 0.9),
-        (+5, 0): pg.transform.rotozoom(kk_img, 0, 0.9),
-        (+5, -5): pg.transform.rotozoom(kk_img, 45, 0.9),
-        (0, -5): pg.transform.rotozoom(kk_img, 90, 0.9),
-        (-5, -5): pg.transform.rotozoom(kk_imgs, -45, 0.9),
-        (-5, 0): pg.transform.rotozoom(kk_imgs, 0, 0.9),
-        (-5, +5): pg.transform.rotozoom(kk_imgs, 45, 0.9),
-        (0, +5): pg.transform.rotozoom(kk_img, -90, 0.9),
-        (+5, +5): pg.transform.rotozoom(kk_img, -45, 0.9),
+        (+v, 0): pg.transform.rotozoom(kk_img, 0, 0.9),
+        (+v, -v): pg.transform.rotozoom(kk_img, 45, 0.9),
+        (0, -v): pg.transform.rotozoom(kk_img, 90, 0.9),
+        (-v, -v): pg.transform.rotozoom(kk_imgs, -45, 0.9),
+        (-v, 0): pg.transform.rotozoom(kk_imgs, 0, 0.9),
+        (-v, +v): pg.transform.rotozoom(kk_imgs, 45, 0.9),
+        (0, +v): pg.transform.rotozoom(kk_img, -90, 0.9),
+        (+v, +v): pg.transform.rotozoom(kk_img, -45, 0.9),
     }
 
 
