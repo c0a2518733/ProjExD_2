@@ -210,31 +210,39 @@ def main():
     sb_img = pg.Surface((10, 10))
     pg.draw.circle(sb_img, (255, 128, 0), (5, 5), 5)
     sb_img.set_colorkey((0, 0, 0))
+
     small = []
     clock = pg.time.Clock()
     tmr = 0
+
     while True:
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
+
         for b in bombs + small:
             if check_collider(kk_rct, b["rct"]):  # 当たり判定円形
                 gameover(screen)
                 return
+
         screen.blit(bg_img, [0, 0])
         key_lst = pg.key.get_pressed()
         sum_mv = [0, 0]
+
         for key, mv in DELTA.items():
             if key_lst[key]:  # 縦と横の移動量設定
                 sum_mv[0] += mv[0]
                 sum_mv[1] += mv[1]
+
         kk_rct.move_ip(sum_mv)
+
         if check_bound(kk_rct) != (True, True):
             kk_rct.move_ip(-sum_mv[0], -sum_mv[1])
         kk_img = kk_imgs[tuple(sum_mv)]  # 移動方向にあった画像の向きにする
         screen.blit(kk_img, kk_rct)
         stage = min(tmr//500, 9)  # 10秒ごとに一段階アップ
         bb_img = bb_imgs[stage]
+
         for b in bombs:  # 大きい爆弾を1個ずつ動かす
             b["vx"], b["vy"] = calc_orientation(b["rct"], kk_rct,
                                                 (b["vx"], b["vy"]))
@@ -244,15 +252,18 @@ def main():
             b["rct"].clamp_ip(screen.get_rect())  # 拡大ではみ出た部分を画面内に戻す
             b["rct"].move_ip(avx, avy)
             yoko, tate = check_bound(b["rct"])
+
             if not yoko:
                 b["vx"] *= -1
             if not tate:
                 b["vy"] *= -1
+
             out = not (yoko and tate)
             if out and not b["touching"]:  # 壁に当たった瞬間だけ1回と数える
                 bounce_cnt += 1
             b["touching"] = out
             screen.blit(bb_img, b["rct"])
+
         if bounce_cnt >= 2:  # 2回反射するごとに爆弾を1個増やす
             bounce_cnt -= 2
             if len(bombs) < BB_MAX:
