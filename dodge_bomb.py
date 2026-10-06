@@ -1,6 +1,8 @@
 import os
 import random
 import sys
+import math
+import time
 import pygame as pg
 
 
@@ -15,7 +17,38 @@ DELTA = {
     pg.K_RIGHT : (+5,0)
 }
 
+def gameover(screen: pg.Surface) -> None:
+    """
+    演習1：ゲームオーバー画面を5秒間表示する
+    半透明の黒い画面に，泣いているこうかとんと「Game Over」を表示する
+    引数：screen（画面Surface）
+    戻り値：なし
+    """
+    go_screen = pg.Surface((WIDTH,HEIGHT))
+    pg.draw.rect(go_screen,(0,0,0),pg.Rect(0,0,WIDTH,HEIGHT))
+    go_screen.set_alpha(200)
+    font = pg.font.Font(None,80)
+    txt = font.render("Game Over", True, (255,255,255))
+    txt_rct = txt.get_rect()
+    txt_rct.center = WIDTH // 2, HEIGHT // 2
+    go_screen.blit(txt,txt_rct)
+    cry_img = pg.transform.rotozoom(pg.image.load("fig/8.png"),0,0.9)
+    cry_rct = cry_img.get_rect()
+    cry_rct.midright = txt_rct.left - 20, txt_rct.centery
+    go_screen.blit(cry_img,cry_rct)
+    cry_rct.midleft = txt_rct.right + 20, txt_rct.centery
+    go_screen.blit(cry_img,cry_rct)
+    screen.blit(go_screen,[0,0])
+    pg.display.update()
+    time.sleep(5)
+
 def check_bound(obj_rct:pg.Rect) -> tuple[bool,bool]:
+    """
+    Rectが画面内か画面外かを判定する
+    引数：こうかとんRect または 爆弾Rect
+    戻り値：タプル（横方向判定結果，縦方向判定結果）
+    画面内ならTrue,画面外ならFalse
+    """
     yoko, tate = True, True
     if obj_rct.left < 0 or WIDTH < obj_rct.right:
         yoko = False
@@ -44,6 +77,7 @@ def main():
             if event.type == pg.QUIT:
                 return
         if kk_rct.colliderect(bb_rct):
+            gameover(screen)
             return
         screen.blit(bg_img, [0, 0])
 
@@ -67,9 +101,6 @@ def main():
         pg.display.update()
         tmr += 1
         clock.tick(50)
-
-
-
 
 if __name__ == "__main__":
     pg.init()
